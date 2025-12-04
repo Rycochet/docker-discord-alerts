@@ -1,0 +1,16 @@
+services:
+  docker-discord-alerts:
+    container_name: docker-discord-alerts
+    build: "."
+    pull_policy: build
+    restart: unless-stopped
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    environment:
+      # DOCKER_HOST: "tcp://socket-proxy:2375" # socket-proxy is safer than sharing the docker socket as a volume!
+      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/..." # Get this from Discord
+      CONTAINERS: "*" # Default for watching everything, comma separated
+      EVENTS: "default" # "all", "default" = "start,pause,unpause,stop,restart,health_status"
+      EXTRA: "" # Maybe ping someone with "<@USER_ID>"
+      LOG_LEVEL: "INFO" # Normal linux log levels
+      VERBOSE: "False" # Gives more information on events

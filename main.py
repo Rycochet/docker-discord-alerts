@@ -27,8 +27,13 @@ class DockerMonitor:
             raise ValueError("DISCORD_WEBHOOK_URL environment variable is required")
 
         # Container monitoring configuration
-        self.monitored_containers = os.environ.get('MONITORED_CONTAINERS', '*')
-        self.notification_level = os.environ.get('NOTIFICATION_LEVEL', 'all').lower()
+        self.containers = os.environ.get('CONTAINERS', '*')
+
+        # Verbose monitoring configuration
+        self.verbose = os.getenv("VERBOSE", 'False').lower() in ('true', '1', 't')
+
+        # Extra text to add to notifications
+        self.extra = os.environ.get('EXTRA', '')
 
         # Health check configuration
         self.health_check_interval = int(os.environ.get('HEALTH_CHECK_INTERVAL', '300'))  # Default 5 minutes
@@ -47,42 +52,78 @@ class DockerMonitor:
 
         # Event configurations with emoji support
         self.event_configs = {
+            'create': EventConfig(
+                title="\⏺️ Container Created: {name}",
+                description="Container {name} was created successfully.",
+                color=0xCCFFCC
+            ),
             'start': EventConfig(
-                title="🟢 Container Started: {name}",
+                title="\▶️ Container Started: {name}",
                 description="Container {name} has started successfully.",
                 color=0x00FF00
             ),
-            'die': EventConfig(
-                title="🔴 Container Stopped: {name}",
-                description="Container {name} has stopped.",
-                color=0xFF0000
-            ),
             'pause': EventConfig(
-                title="⏸️ Container Paused: {name}",
+                title="\⏸️ Container Paused: {name}",
                 description="Container {name} has been paused.",
                 color=0xFFA500
             ),
             'unpause': EventConfig(
-                title="▶️ Container Unpaused: {name}",
+                title="\⏯️ Container Unpaused: {name}",
                 description="Container {name} has been unpaused.",
-                color=0x00FF00
+                color=0xA5FF00
+            ),
+            'restart': EventConfig(
+                title="\🔁 Container Restarted: {name}",
+                description="Container {name} has been restarted.",
+                color=0x00FFA5
+            ),
+            'stop': EventConfig(
+                title="\⏹️ Container Stopped: {name}",
+                description="Container {name} has stopped.",
+                color=0xCC0000
+            ),
+            'kill': EventConfig(
+                title="\💀 Container Killed: {name}",
+                description="Container {name} has been killed.",
+                color=0xAA0000
+            ),
+            'die': EventConfig(
+                title="\⏏️ Container Died: {name}",
+                description="Container {name} has died.",
+                color=0xFF0000
             ),
             'health_status': EventConfig(
-                title="🏥 Health Status: {name}",
+                title="\🩺 Health Status: {name}",
                 description="Health status changed for container {name}.",
-                color=0x0000FF
+                color=0x712EFF
             )
         }
+
+        # Event monitoring configuration
+        events = os.environ.get('EVENTS', 'default').lower()
+
+        if events == 'default':
+            events = 'start,pause,unpause,stop,restart,health_status'
+
+        self.events = list(self.event_configs.keys()) if events == 'all' else [x.strip() for x in events.split(',')]
+
+        for action in self.events:
+            if action not in self.event_configs.keys():
+                logger.warning(f"Unknown event type: {action}")
 
     def send_discord_embed(self, title: str, description: str, color: int, fields: List[Dict[str, Any]]) -> bool:
         """Send an embed message to Discord webhook with retries."""
         embed = {
             "title": title,
-            "description": description,
             "color": color,
-            "fields": fields,
-            "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            "fields": fields
         }
+
+        # This simply duplicates the title, so save vertical space
+        if self.verbose:
+            embed['description'] = description + ('\n' + self.extra if self.extra else '')
+        elif self.extra:
+            embed['description'] = self.extra
 
         payload = {"embeds": [embed]}
         headers = {"Content-Type": "application/json"}
@@ -125,8 +166,8 @@ class DockerMonitor:
 
     def monitor_events(self) -> None:
         """Monitor Docker events and send notifications."""
-        logger.info(f"Starting Docker monitor with notification level: {self.notification_level}")
-        logger.info(f"Monitoring containers: {self.monitored_containers}")
+        logger.info(f"Starting Docker monitor for events: {','.join(self.events)}")
+        logger.info(f"Monitoring containers: {self.containers}")
 
         try:
             for event in self.client.events(decode=True):
@@ -137,33 +178,46 @@ class DockerMonitor:
                 action = event['Action']
 
                 # Skip if container is not in monitored list
-                if self.monitored_containers != '*' and container_name not in self.monitored_containers.split(','):
+                if self.containers != '*' and container_name not in self.containers.split(','):
                     continue
 
                 # Skip if action is not in notification level
-                if self.notification_level != 'all' and action not in self.notification_level.split(','):
+                if action not in self.events:
                     continue
 
                 if action in self.event_configs:
-                    status = self.get_container_status(event['id'])
+                    container_id = event['id'] if 'id' in event else event['Actor']['ID']
+                    status = self.get_container_status(container_id)
 
                     fields = [
-                        {"name": "Event", "value": action, "inline": True},
-                        {"name": "Image", "value": status["image"], "inline": True},
-                        {"name": "Status", "value": status["status"], "inline": True},
-                        {"name": "Health", "value": status["health"], "inline": True},
-                        {"name": "Platform", "value": status["platform"], "inline": True},
-                        {"name": "Timestamp", "value": f"<t:{int(time.time())}:F>", "inline": False}
-                    ]
+                        {"name": "Event", "value": f"`{action}`", "inline": True},
+                        {"name": "Status", "value": f"`{status["status"]}`", "inline": True},
+                        {"name": "Health", "value": f"`{status["health"]}`", "inline": True},
+                        {"name": "Image", "value": f"`{status["image"]}`", "inline": True},
+                        {"name": "Platform", "value": f"`{status["platform"]}`", "inline": True},
+                    ] if self.verbose else []
 
-                    # Add exit code for stopped containers
                     if action == 'die':
+                        # Add exit code for stopped containers
                         exit_code = event['Actor']['Attributes'].get('exitCode', 'Unknown')
                         fields.append({
                             "name": "Exit Code",
                             "value": exit_code,
                             "inline": False
                         })
+                    elif action == 'health_status' and not self.verbose:
+                        # Health status has now changed
+                        fields.append({
+                            "name": "Health",
+                            "value": status["health"],
+                            "inline": True
+                        })
+
+                    fields.append({
+                        "name": "Timestamp",
+                        "value": f"<t:{int(time.time())}:F>",
+                        "inline": False
+                    })
 
                     event_config = self.event_configs[action]
                     if not self.send_discord_embed(
