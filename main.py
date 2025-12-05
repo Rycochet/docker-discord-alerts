@@ -103,7 +103,7 @@ class DockerMonitor:
         events = os.environ.get('EVENTS', 'default').lower()
 
         if events == 'default':
-            events = 'start,pause,unpause,stop,restart,health_status'
+            events = 'start,pause,unpause,stop,health_status'
 
         self.events = list(self.event_configs.keys()) if events == 'all' else [x.strip() for x in events.split(',')]
 
@@ -175,17 +175,21 @@ class DockerMonitor:
                     continue
 
                 container_name = event['Actor']['Attributes'].get('name', 'unknown')
-                action = event['Action']
 
                 # Skip if container is not in monitored list
                 if self.containers != '*' and container_name not in self.containers.split(','):
                     continue
 
+                action = event['Action']
+
                 # Skip if action is not in notification level
                 if action not in self.events:
+                    logger.debug(f"Skipping event: {action}")
                     continue
 
                 if action in self.event_configs:
+                    logger.debug(event)
+
                     container_id = event['id'] if 'id' in event else event['Actor']['ID']
                     status = self.get_container_status(container_id)
 
