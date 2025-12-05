@@ -4,6 +4,9 @@
 
 Monitor your Docker containers effortlessly and receive real-time alerts in Discord. This project leverages Docker Compose to run the monitoring script as a continuous service, ensuring you stay informed on container events such as start, stop, restart, and failures.
 
+![alert-verbose](https://github.com/user-attachments/assets/bc8bf763-08f2-4c85-b72a-7a5f2d7fdbba)
+![alert](https://github.com/user-attachments/assets/e0d0f485-670a-45e7-8107-ab2aa7292c98)
+    
 ## Features
 
 - **Real-Time Monitoring**: Listens for Docker container events.
