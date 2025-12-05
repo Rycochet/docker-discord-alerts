@@ -1,8 +1,8 @@
-FROM python:3.12-slim
+FROM python:3-alpine
 
 WORKDIR /usr/src/app
 
-COPY . .
+COPY main.py requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
