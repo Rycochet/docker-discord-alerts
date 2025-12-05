@@ -86,11 +86,11 @@ These are the supported docker events, and the colour of the notifications for e
 | Event | Description | Default |
 | --- | --- | --- |
 | `create` | ![#CCFFCC](https://placehold.co/15x15/CCFFCC/CCFFCC.png) ⏺️ Container Created | |
-| `start` | ![#00FF00](https://placehold.co/15x15/00FF00/00FF00.png) ▶️ Container Started | - [x] |
-| `pause` | ![#FFA500](https://placehold.co/15x15/FFA500/FFA500.png) ⏸️ Container Paused | - [x] |
-| `unpause` | ![#A5FF00](https://placehold.co/15x15/A5FF00/A5FF00.png) ⏯️ Container Unpaused | - [x] |
+| `start` | ![#00FF00](https://placehold.co/15x15/00FF00/00FF00.png) ▶️ Container Started | ✅ |
+| `pause` | ![#FFA500](https://placehold.co/15x15/FFA500/FFA500.png) ⏸️ Container Paused | ✅ |
+| `unpause` | ![#A5FF00](https://placehold.co/15x15/A5FF00/A5FF00.png) ⏯️ Container Unpaused | ✅ |
 | `restart` | ![#00FFA5](https://placehold.co/15x15/00FFA5/00FFA5.png) 🔁 Container Restarted *(will also show both `stop` and `start`)* | |
-| `stop` | ![#CC0000](https://placehold.co/15x15/CC0000/CC0000.png) ⏹️ Container Stopped | - [x] |
+| `stop` | ![#CC0000](https://placehold.co/15x15/CC0000/CC0000.png) ⏹️ Container Stopped | ✅ |
 | `kill` | ![#AA0000](https://placehold.co/15x15/AA0000/AA0000.png) 💀 Container Killed | |
 | `die` | ![#FF0000](https://placehold.co/15x15/FF0000/FF0000.png) ⏏️ Container Died *(includes both `stop` and `kill`)* | |
-| `health_status` | ![#712EFF](https://placehold.co/15x15/712EFF/712EFF.png) 🩺 Health Status | - [x] |
+| `health_status` | ![#712EFF](https://placehold.co/15x15/712EFF/712EFF.png) 🩺 Health Status | ✅ |
