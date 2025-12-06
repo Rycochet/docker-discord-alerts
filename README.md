@@ -6,13 +6,14 @@ Monitor your Docker containers effortlessly and receive real-time alerts in Disc
 
 ![alert-verbose](https://github.com/user-attachments/assets/bc8bf763-08f2-4c85-b72a-7a5f2d7fdbba)
 ![alert](https://github.com/user-attachments/assets/e0d0f485-670a-45e7-8107-ab2aa7292c98)
-    
+
 ## Features
 
 - **Real-Time Monitoring**: Listens for Docker container events.
 - **Discord Notifications**: Sends event alerts to a Discord channel using webhooks (no bot required).
 - **Rich Embeds**: Optional detailed information.
 - **Configurable**: Easily customize alerts using a ENV vars.
+- **Whitelist or Blacklist**: Only monitor the containers you want to.
 - **Dockerized**: Run the script as a background service using Docker Compose.
 
 ## Prerequisites
@@ -75,7 +76,7 @@ Monitor your Docker containers effortlessly and receive real-time alerts in Disc
 | Name | Definition | Default |
 | --- | --- | --- |
 | `DISCORD_WEBHOOK_URL` | **Required** <br> The full webhook URL from Discord, see [here](https://discordjs.guide/legacy/popular-topics/webhooks) | |
-| `CONTAINERS` | A comma-separated list of container names, or `*` for "everything" | `*` |
+| `CONTAINERS` | A comma-separated list of container names, or `*` for "everything". <br> If you use `*` then you can **also** ignore specific containers by prefixing with a dash, ie `*,-hello-world` would show all containers *except* `hello-world`. | `*` |
 | `DOCKER_HOST` | If using socket-proxy you should pass the URI for it here. | |
 | `EVENTS` | A comma separated list of events to watch. There are two special values, `all` for everything, or `default` for a smaller list (see separate table). | `default` |
 | `EXTRA` | A string to send with every alert, perfect for sending @mentions for people. You need to obtain the ID (see [here](https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID)) and format as `<@USER_ID>` or `<@&ROLE_ID>`, but can put any text here. | |

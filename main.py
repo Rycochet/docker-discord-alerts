@@ -8,8 +8,8 @@ from dataclasses import dataclass
 import logging
 
 logging.basicConfig(
-    level=os.getenv('LOG_LEVEL', 'INFO'),
-    format='[%(asctime)s] %(levelname)s: %(message)s'
+    level = os.getenv('LOG_LEVEL', 'INFO'),
+    format = '[%(asctime)s] %(levelname)s: %(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,8 @@ class DockerMonitor:
             raise ValueError("DISCORD_WEBHOOK_URL environment variable is required")
 
         # Container monitoring configuration
-        self.containers = os.environ.get('CONTAINERS', '*')
+        containers = os.environ.get('CONTAINERS', '*')
+        self.containers = containers.split(',')
 
         # Verbose monitoring configuration
         self.verbose = os.getenv("VERBOSE", 'False').lower() in ('true', '1', 't')
@@ -167,17 +168,21 @@ class DockerMonitor:
     def monitor_events(self) -> None:
         """Monitor Docker events and send notifications."""
         logger.info(f"Starting Docker monitor for events: {','.join(self.events)}")
-        logger.info(f"Monitoring containers: {self.containers}")
+        logger.info(f"Monitoring containers: {','.join(self.containers)}")
 
         try:
+            all_containers = True if '*' else False
             for event in self.client.events(decode=True):
                 if event['Type'] != 'container':
                     continue
 
                 container_name = event['Actor']['Attributes'].get('name', 'unknown')
 
-                # Skip if container is not in monitored list
-                if self.containers != '*' and container_name not in self.containers.split(','):
+                # Skip if container is not in monitored list, or we're watching for everything except it
+                if all_containers:
+                    if '-' + container_name in self.containers:
+                        continue
+                elif container_name not in self.containers:
                     continue
 
                 action = event['Action']
