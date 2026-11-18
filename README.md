@@ -81,6 +81,7 @@ Monitor your Docker containers effortlessly and receive real-time alerts in Disc
 | `EVENTS` | A comma separated list of events to watch. There are two special values, `all` for everything, or `default` for a smaller list (see separate table). | `default` |
 | `EXTRA` | A string to send with every alert, perfect for sending @mentions for people. You need to obtain the ID (see [here](https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID)) and format as `<@USER_ID>` or `<@&ROLE_ID>`, but can put any text here. | |
 | `LOG_LEVEL` | How much to log: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` | `INFO` |
+| `RESTART_WINDOW` | Seconds to wait after a container goes down (`kill`, `die` or `stop`) to see if it comes back up. If it starts again within this time a single `restart` or `update` alert is sent instead of separate down and up alerts (see below). Set to `0` to turn this off and send every event straight away. | `30` |
 | `VERBOSE` | Provide more detail for the Discord messages. (`True` / `False`) | `False` |
 
 ## Docker Events
@@ -93,8 +94,18 @@ These are the supported docker events, and the colour of the notifications for e
 | `start` | ![#00FF00](https://placehold.co/15x15/00FF00/00FF00.png) ▶️ Container Started | ✅ |
 | `pause` | ![#FFA500](https://placehold.co/15x15/FFA500/FFA500.png) ⏸️ Container Paused | ✅ |
 | `unpause` | ![#A5FF00](https://placehold.co/15x15/A5FF00/A5FF00.png) ⏯️ Container Unpaused | ✅ |
-| `restart` | ![#00FFA5](https://placehold.co/15x15/00FFA5/00FFA5.png) 🔁 Container Restarted *(will also show both `stop` and `start`)* | |
+| `restart` | ![#00FFA5](https://placehold.co/15x15/00FFA5/00FFA5.png) 🔁 Container Restarted *(same image, includes the exit code if it crashed)* | ✅ |
+| `update` | ![#00A5FF](https://placehold.co/15x15/00A5FF/00A5FF.png) ⬆️ Container Updated *(restarted with a new image, ie by Watchtower)* | ✅ |
 | `stop` | ![#CC0000](https://placehold.co/15x15/CC0000/CC0000.png) ⏹️ Container Stopped | ✅ |
 | `kill` | ![#AA0000](https://placehold.co/15x15/AA0000/AA0000.png) 💀 Container Killed | |
 | `die` | ![#FF0000](https://placehold.co/15x15/FF0000/FF0000.png) ⏏️ Container Died *(includes both `stop` and `kill`)* | |
 | `health_status` | ![#712EFF](https://placehold.co/15x15/712EFF/712EFF.png) 🩺 Health Status | ✅ |
+
+### Restarts and Updates
+
+When a container goes down, the alert is held back for `RESTART_WINDOW` seconds. If a container with the same name starts again in that time, the held alerts and the `start` alert are replaced by one alert:
+
+- **Updated** if the new container is running a different image (such as after Watchtower or `docker compose up -d` pulls a new version). This shows the image, and the old and new versions - taken from the `org.opencontainers.image.version` label when the image has one, along with the short image ID.
+- **Restarted** if it is the same image. If the container crashed (a non-zero exit code) then that is included.
+
+If the matching event (`restart` or `update`) is not in `EVENTS` then the held alerts are sent as they happened instead. A container that stays down is still reported, just `RESTART_WINDOW` seconds later.
